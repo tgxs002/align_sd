@@ -18,7 +18,7 @@ The dataset can be downloaded from TBD.
 The pretrained human preference classifier can be downloaded from TBD.
 Before running the human preference classifier, please make sure you have set up the CLIP environment as specified in [here](https://github.com/openai/CLIP).
 
-```
+```python
 import torch
 import clip
 from PIL import Image

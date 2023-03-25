@@ -10,13 +10,36 @@ This is the official repository for the paper: Better Aligning Text-to-Image Mod
 ![examples](assets/examples.png)
 
 The dataset is collected from the Stable Foundation Discord server. We record human choices on images generated with the same prompt but with different random seeds.
-The dataset can be downloaded from TBD.
+The compressed dataset can be downloaded from [here](TBD).
+Once unzipped, you should get a folder with the following structure:
+```
+dataset
+---- preference_images/
+-------- {instance_id}_{image_id}.jpg
+---- preference_train.json
+---- preference_test.json
+```
+The annotation file, `preference_{train/test}.json`, is organized as:
+```
+[
+    {
+        'human_preference': int,
+        'prompt': str,
+        'id': int,
+        'file_path': list[str],
+        'user_hash': str,
+        'contain_name': boolean,
+    },
+    ...
+]
+```
+The annotation file contains a list of dict for each instance in our dataset. Besides the image paths, prompt, id and human preference, we also provide the hash of user id. The prompts with names are flagged out by the `contain_name` field.
 
 <!-- data format specification -->
 
 ## Human Preference Classifier
-The pretrained human preference classifier can be downloaded from TBD.
-Before running the human preference classifier, please make sure you have set up the CLIP environment as specified in [here](https://github.com/openai/CLIP).
+The pretrained human preference classifier can be downloaded from [OneDrive](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/EWDmzdoqa1tEgFIGgR5E7gYBTaQktJcxoOYRoTHWzwzNcw?e=b7rgYW).
+Before running the human preference classifier, please make sure you have set up the CLIP environment as specified in the [official repo](https://github.com/openai/CLIP).
 
 ```python
 import torch
@@ -25,7 +48,7 @@ from PIL import Image
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-L/14", device=device)
-params = torch.load("path/to/checkpoint.pth")['state_dict']
+params = torch.load("path/to/hpc.pth")['state_dict']
 model.load_state_dict(params)
 
 image1 = preprocess(Image.open("image1.png")).unsqueeze(0).to(device)
@@ -42,12 +65,12 @@ with torch.no_grad():
 
     hps = image_features @ text_features.T
 ```
-Remember to replace `path/to/checkpoint.pth` with the path of the downloaded checkpoint.
+Remember to replace `path/to/hpc.pth` with the path of the downloaded checkpoint.
 The training script is based on [OpenCLIP](https://github.com/mlfoundations/open_clip). We thank the community for their valuable work.
 The script will be released soon.
 
 ## Adapted model
-The LORA checkpoint of the adapted model can be found [here](TBD). We also provide the regularization only model trained without the guidance of human preferences at [here](TBD).
+The LORA checkpoint of the adapted model can be found [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ETbAtw6J9AdCq-afxHsZT6kBsnWa_mWXStzqyIyu1hxVuQ?e=MnX7tt). We also provide the regularization only model trained without the guidance of human preferences at [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ESgC8KMIBoZOuGLsBGzu164Bxzwucwp_Jc5xBvTwA9sagA?e=RW4aaV).
 Please refer to the paper for the training details. The training script will be released soon.
 
 ## Visualizations

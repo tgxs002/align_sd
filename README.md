@@ -2,7 +2,7 @@
 
 ![teaser](assets/github_banner.png)
 
-### [project page](https://tgxs002.github.io/align_sd_web/) | [arxiv](TBD)
+### [Project page](https://tgxs002.github.io/align_sd_web/) | [Arxiv](TBD)
 
 This is the official repository for the paper: Better Aligning Text-to-Image Models with Human Preference. The paper demonstrates that Stable Diffusion can be improved via learning from human preferences. By learning from human preferences, the model is better aligned with user intentions, and also produce images with less artifacts, such as weird limbs and faces.
 
@@ -80,7 +80,7 @@ Please refer to the paper for the training details. The training script will be 
 ## Citation
 If you find the work helpful, please cite our paper:
 ```
-@article{wu2023cora,
+@article{wu2023alsd,
   title={Better Aligning Text-to-Image Models with Human Preference},
   author={Xiaoshi Wu and Keqiang Sun and Feng Zhu and Rui Zhao and Hongsheng Li},
   journal={ArXiv},

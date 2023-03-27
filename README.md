@@ -76,3 +76,15 @@ Please refer to the paper for the training details. The training script will be 
 ## Visualizations
 ![vis1](assets/vis1.png)
 ![vis2](assets/vis2.png)
+
+## Citation
+If you find the work helpful, please cite our paper:
+```
+@article{wu2023cora,
+  title={Better Aligning Text-to-Image Models with Human Preference},
+  author={Xiaoshi Wu and Keqiang Sun and Feng Zhu and Rui Zhao and Hongsheng Li},
+  journal={ArXiv},
+  year={2023},
+  volume={abs/2303.TBD}
+}
+```

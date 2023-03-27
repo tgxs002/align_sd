@@ -2,7 +2,7 @@
 
 ![teaser](assets/github_banner.png)
 
-### [project page](TBD) | [arxiv](TBD)
+### [project page](https://tgxs002.github.io/align_sd_web/) | [arxiv](TBD)
 
 This is the official repository for the paper: Better Aligning Text-to-Image Models with Human Preference. The paper demonstrates that Stable Diffusion can be improved via learning from human preferences. By learning from human preferences, the model is better aligned with user intentions, and also produce images with less artifacts, such as weird limbs and faces.
 
@@ -10,7 +10,7 @@ This is the official repository for the paper: Better Aligning Text-to-Image Mod
 ![examples](assets/examples.png)
 
 The dataset is collected from the Stable Foundation Discord server. We record human choices on images generated with the same prompt but with different random seeds.
-The compressed dataset can be downloaded from [here](TBD).
+The compressed dataset can be downloaded from [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ESCl7RD3cE9FsitV0P2F8DABC1zRJxbCMI-AXei2Nwx2vA?e=ILRanj).
 Once unzipped, you should get a folder with the following structure:
 ```
 dataset

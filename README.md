@@ -80,7 +80,7 @@ After that, please run the following command for inference:
 ```shell
 python generate_images.py --unet_weight /path/to/checkpoint.bin --prompts /path/to/prompt_list.json --folder /path/to/output/folder
 ```
-We highlight that you need to add 'Weird image. ' to the negative prompt when doing inference, for which the reason is explained in our paper.
+**We highlight that you need to add 'Weird image. ' to the negative prompt when doing inference**, for which the reason is explained in our paper.
 If you want to inference on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui), please check [this issue](https://github.com/tgxs002/align_sd/issues/1).
 
 ### Training

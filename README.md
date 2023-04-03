@@ -91,6 +91,8 @@ If you want to do inference on [AUTOMATIC1111/stable-diffusion-webui](https://gi
 ### Gradio demo
 - We also provide a UI for testing our method that is built with gradio. Running the following command in a terminal will launch the demo: 
     ```
+    # install dependencies
+    pip install -r gradio_requirements.txt
     python app_gradio.py
     ```
 - This demo is also hosted on HuggingFace [here](https://huggingface.co/spaces/xswu/align_sd).

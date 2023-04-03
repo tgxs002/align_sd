@@ -72,7 +72,7 @@ The script will be released soon.
 ## Adapted model
 
 ### Checkpoint
-The LORA checkpoint of the adapted model can be found [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ETbAtw6J9AdCq-afxHsZT6kBsnWa_mWXStzqyIyu1hxVuQ?e=MnX7tt). We also provide the regularization only model trained without the guidance of human preferences at [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ESgC8KMIBoZOuGLsBGzu164Bxzwucwp_Jc5xBvTwA9sagA?e=RW4aaV).
+The LoRA checkpoint of the adapted model can be found [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ETbAtw6J9AdCq-afxHsZT6kBsnWa_mWXStzqyIyu1hxVuQ?e=MnX7tt). We also provide the regularization only model trained without the guidance of human preferences at [here](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155172150_link_cuhk_edu_hk/ESgC8KMIBoZOuGLsBGzu164Bxzwucwp_Jc5xBvTwA9sagA?e=RW4aaV).
 
 ### Inference
 You will need to have [diffusers](https://huggingface.co/docs/diffusers/index) and [pytorch](https://pytorch.org/) installed in your environment.
@@ -81,7 +81,7 @@ After that, please run the following command for inference:
 python generate_images.py --unet_weight /path/to/checkpoint.bin --prompts /path/to/prompt_list.json --folder /path/to/output/folder
 ```
 We highlight that you need to add 'Weird image. ' to the negative prompt when doing inference, for which the reason is explained in our paper.
-If you want to inference on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui), please check [this issue](https://github.com/tgxs002/align_sd/issues/1).
+If you want to do inference on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui), please check [this issue](https://github.com/tgxs002/align_sd/issues/1).
 
 ### Training
 Please refer to the paper for the training details. The training script will be released soon.

@@ -108,11 +108,12 @@ Please refer to the paper for the training details. The training script will be 
 ## Citation
 If you find the work helpful, please cite our paper:
 ```
-@article{wu2023alsd,
-  title={Better Aligning Text-to-Image Models with Human Preference},
-  author={Xiaoshi Wu and Keqiang Sun and Feng Zhu and Rui Zhao and Hongsheng Li},
-  journal={ArXiv},
-  year={2023},
-  volume={abs/2303.14420}
+@misc{wu2023better,
+      title={Better Aligning Text-to-Image Models with Human Preference}, 
+      author={Xiaoshi Wu and Keqiang Sun and Feng Zhu and Rui Zhao and Hongsheng Li},
+      year={2023},
+      eprint={2303.14420},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
 }
 ```

@@ -1,0 +1,6 @@
+torch
+torchvision
+datasets
+accelerate
+huggingface_hub
+transformers

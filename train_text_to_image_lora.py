@@ -15,12 +15,14 @@
 """Fine-tuning script for Stable Diffusion for text2image with support for LoRA."""
 
 import argparse
+import json
 import logging
 import math
 import os
 import random
 from pathlib import Path
 from typing import Optional
+from PIL import Image
 
 import datasets
 import numpy as np
@@ -36,7 +38,6 @@ from huggingface_hub import HfFolder, Repository, create_repo, whoami
 from torchvision import transforms
 from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
-from evaluation import preference_score
 
 import diffusers
 from diffusers import AutoencoderKL, DDPMScheduler, DiffusionPipeline, UNet2DConditionModel, StableDiffusionPipeline
@@ -45,7 +46,6 @@ from diffusers.models.cross_attention import LoRACrossAttnProcessor
 from diffusers.optimization import get_scheduler
 from diffusers.utils import check_min_version, is_wandb_available
 from diffusers.utils.import_utils import is_xformers_available
-from StableDiffusionPipelineLoRA import StableDiffusionPipelineLoRA
 
 
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
@@ -92,16 +92,17 @@ def parse_args():
         help="Path to pretrained model or model identifier from huggingface.co/models.",
     )
     parser.add_argument(
+        "--annotation_file",
+        type=str,
+        default=None,
+        required=True,
+        help="Path to annotation file.",
+    )
+    parser.add_argument(
         "--preference_classifier",
         type=str,
         required=True,
         help="Path to pretrained CLIP model preference classification.",
-    )
-    parser.add_argument(
-        "--cache_path",
-        type=str,
-        default="",
-        help=".",
     )
     parser.add_argument(
         "--revision",
@@ -111,54 +112,10 @@ def parse_args():
         help="Revision of pretrained model identifier from huggingface.co/models.",
     )
     parser.add_argument(
-        "--dataset_name",
-        type=str,
-        default=None,
-        help=(
-            "The name of the Dataset (from the HuggingFace hub) to train on (could be your own, possibly private,"
-            " dataset). It can also be a path pointing to a local copy of a dataset in your filesystem,"
-            " or to a folder containing files that 🤗 Datasets can understand."
-        ),
-    )
-    parser.add_argument(
-        "--dataset_config_name",
-        type=str,
-        default=None,
-        help="The config of the Dataset, leave as None if there's only one config.",
-    )
-    parser.add_argument(
-        "--train_data_dir",
-        type=str,
-        default=None,
-        help=(
-            "A folder containing the training data. Folder contents must follow the structure described in"
-            " https://huggingface.co/docs/datasets/image_dataset#imagefolder. In particular, a `metadata.jsonl` file"
-            " must exist to provide the captions for the images. Ignored if `dataset_name` is specified."
-        ),
-    )
-    parser.add_argument(
-        "--data_split", type=str, default="laion_pos_gen_neg", choices=['all', 'laion_positive', 'laion_negative', 'positive', 'negative', 'positive_half_negative', 'positive_quarter_negative', 'laion_pos_gen_neg', 'gen_with_norm', 'gen_only'], help="The column of the dataset containing an image."
-    )
-    parser.add_argument(
-        "--gen_portion", type=int, default=25, help="The portion of generted images."
-    )
-    parser.add_argument(
-        "--neg_portion", type=int, default=-1, help="The portion of generted images."
-    )
-    parser.add_argument(
         "--prompt_dropout", type=float, default=0.0, help="drop out rate of prompt for classifier free guidance."
     )
     parser.add_argument(
-        "--image_column", type=str, default="image", help="The column of the dataset containing an image."
-    )
-    parser.add_argument(
         "--negative_prefix", type=str, default="Weird image. ", help="The column of the dataset containing an image."
-    )
-    parser.add_argument(
-        "--caption_column",
-        type=str,
-        default="text",
-        help="The column of the dataset containing a caption or a list of captions.",
     )
     parser.add_argument(
         "--validation_prompt_file", type=str, default=None, help="A file with prompts that is sampled during training for inference."
@@ -179,14 +136,6 @@ def parse_args():
         help=(
             "Run fine-tuning validation every X iters. The validation process consists of running the prompt"
             " `args.validation_prompt` multiple times: `args.num_validation_images`."
-        ),
-    )
-    parser.add_argument(
-        "--apply_lora_before",
-        type=float,
-        default=1.0,
-        help=(
-            "apply lora on the first apply_lora_before% time steps"
         ),
     )
     parser.add_argument(
@@ -393,11 +342,6 @@ def get_full_repo_name(model_id: str, organization: Optional[str] = None, token:
         return f"{organization}/{model_id}"
 
 
-DATASET_NAME_MAPPING = {
-    "lambdalabs/pokemon-blip-captions": ("image", "text"),
-}
-
-
 def main():
     args = parse_args()
     logging_dir = os.path.join(args.output_dir, args.logging_dir)
@@ -556,86 +500,38 @@ def main():
     # Get the datasets: you can either provide your own training and evaluation files (see below)
     # or specify a Dataset from the hub (the dataset will be downloaded automatically from the datasets Hub).
 
-    # In distributed training, the load_dataset function guarantees that only one local process can concurrently
-    # download the dataset.
-    if args.dataset_name is not None:
-        # Downloading and loading a dataset from the hub.
-        split = args.data_split
-        if args.data_split == 'laion_pos_gen_neg':
-            split = ['laion_positive', 'gen_negative[:25%]']
-        if args.data_split == 'gen_with_norm':
-            neg_portion = args.gen_portion if args.neg_portion == -1 else args.neg_portion
-            split = ['laion_positive', f'gen_negative[:{neg_portion}%]', f'gen_positive[:{args.gen_portion}%]']
-        if args.data_split == 'gen_only':
-            neg_portion = args.gen_portion if args.neg_portion == -1 else args.neg_portion
-            split = [f'gen_negative[:{neg_portion}%]', f'gen_positive[:{args.gen_portion}%]']
-        dataset = load_dataset(
-            args.dataset_name,
-            args.dataset_config_name,
-            cache_dir=args.cache_dir,
-            split=split,
-        )
-        if isinstance(dataset, list):
-            dataset = concatenate_datasets(dataset)
-    else:
-        data_files = {}
-        if args.train_data_dir is not None:
-            data_files[args.data_split] = os.path.join(args.train_data_dir, "**")
-        dataset = load_dataset(
-            "imagefolder",
-            data_files=data_files,
-            cache_dir=args.cache_dir,
-        )
-        # See more about loading custom images at
-        # https://huggingface.co/docs/datasets/v2.4.0/en/image_load#imagefolder
+    class ImageTextDataset(torch.utils.data.Dataset):
+            
+        def __init__(self, annotation_file, tokenizer, transforms, args):
 
-    # Preprocessing the datasets.
-    # We need to tokenize inputs and targets.
-    column_names = dataset.column_names
+            self.tokenizer = tokenizer
+            self.transforms = transforms
 
-    # 6. Get the column names for input/target.
-    dataset_columns = DATASET_NAME_MAPPING.get(args.dataset_name, None)
-    if args.image_column is None:
-        image_column = dataset_columns[0] if dataset_columns is not None else column_names[0]
-    else:
-        image_column = args.image_column
-        if image_column not in column_names:
-            raise ValueError(
-                f"--image_column' value '{args.image_column}' needs to be one of: {', '.join(column_names)}"
+            self.images = []
+            self.captions = []
+            with open(annotation_file, encoding="utf-8") as f:
+                for key, row in enumerate(f):
+                    data = json.loads(row)
+                    self.images.append(data['file_name'])
+                    prompt = data['prompt']
+                    if data['type'] == "negative":
+                        prompt = args.negative_prefix + prompt
+                    if random.random() < args.prompt_dropout:
+                        prompt = ""
+                    self.captions.append(prompt)
+        
+        def __len__(self):
+            return len(self.images)
+        
+        def __getitem__(self, idx):
+            image = Image.open(self.images[idx]).convert('RGB')
+            if self.transforms is not None:
+                image = self.transforms(image)
+            inputs = self.tokenizer(self.captions[idx], padding="max_length", truncation=True, max_length=self.tokenizer.model_max_length, return_tensors="pt")
+            return dict(
+                pixel_values=image,
+                input_ids=inputs.input_ids,
             )
-    if args.caption_column is None:
-        caption_column = dataset_columns[1] if dataset_columns is not None else column_names[1]
-    else:
-        caption_column = args.caption_column
-        if caption_column not in column_names:
-            raise ValueError(
-                f"--caption_column' value '{args.caption_column}' needs to be one of: {', '.join(column_names)}"
-            )
-
-    # Preprocessing the datasets.
-    # We need to tokenize input captions and transform the images.
-    def tokenize_captions(examples, is_train=True):
-        captions = []
-        for caption, type_label in zip(examples[caption_column], examples['type']):
-            if random.random() < args.prompt_dropout:
-                caption = ""
-            elif type_label == "negative":
-                caption = args.negative_prefix + caption
-            else:
-                assert type_label == "positive"
-            if isinstance(caption, str):
-                captions.append(caption)
-            elif isinstance(caption, (list, np.ndarray)):
-                # take a random caption if there are multiple
-                captions.append(random.choice(caption) if is_train else caption[0])
-            else:
-                raise ValueError(
-                    f"Caption column `{caption_column}` should contain either strings or lists of strings."
-                )
-        inputs = tokenizer(
-            captions, max_length=tokenizer.model_max_length, padding="max_length", truncation=True, return_tensors="pt"
-        )
-        return inputs.input_ids
 
     # Preprocessing the datasets.
     train_transforms = transforms.Compose(
@@ -648,17 +544,10 @@ def main():
         ]
     )
 
-    def preprocess_train(examples):
-        images = [image.convert("RGB") for image in examples[image_column]]
-        examples["pixel_values"] = [train_transforms(image) for image in images]
-        examples["input_ids"] = tokenize_captions(examples)
-        return examples
-
     with accelerator.main_process_first():
         if args.max_train_samples is not None:
             dataset = dataset.shuffle(seed=args.seed).select(range(args.max_train_samples))
-        # Set the training transforms
-        train_dataset = dataset.with_transform(preprocess_train)
+        train_dataset = ImageTextDataset(args.annotation_file, tokenizer, train_transforms, args)
 
     def collate_fn(examples):
         pixel_values = torch.stack([example["pixel_values"] for example in examples])
@@ -704,7 +593,7 @@ def main():
     # We need to initialize the trackers we use, and also store our configuration.
     # The trackers initializes automatically on the main process.
     if accelerator.is_main_process:
-        accelerator.init_trackers("text2image-fine-tune", config=vars(args))
+        accelerator.init_trackers("train text2image LoRA", config=vars(args))
 
     # Train!
     total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
@@ -748,6 +637,7 @@ def main():
     progress_bar = tqdm(range(global_step, args.max_train_steps), disable=not accelerator.is_local_main_process)
     progress_bar.set_description("Steps")
 
+    validation_prompts = []
     if args.validation_prompt_file is not None:
         with open(args.validation_prompt_file, 'r') as f:
             validation_prompts = f.readlines()
@@ -772,7 +662,7 @@ def main():
                 noise = torch.randn_like(latents)
                 bsz = latents.shape[0]
                 # Sample a random timestep for each image
-                timesteps = torch.randint(int(noise_scheduler.num_train_timesteps * (1 - args.apply_lora_before)), noise_scheduler.num_train_timesteps, (bsz,), device=latents.device)
+                timesteps = torch.randint(0, noise_scheduler.num_train_timesteps, (bsz,), device=latents.device)
                 timesteps = timesteps.long()
 
                 # Add noise to the latents according to the noise magnitude at each timestep
@@ -833,22 +723,16 @@ def main():
                         f"Running validation... \n Generating {args.num_validation_images} images"
                     )
                     # create pipeline
-                    pipeline = StableDiffusionPipelineLoRA.from_pretrained(
-                        args.cache_path if args.cache_path else args.pretrained_model_name_or_path,
+                    pipeline = StableDiffusionPipeline.from_pretrained(
+                        args.pretrained_model_name_or_path,
                         unet=accelerator.unwrap_model(unet),
                         revision=args.revision,
                         torch_dtype=weight_dtype,
                         requires_safety_checker=False,
                         safety_checker=None,
                     )
-                    pipeline.apply_lora_before = args.apply_lora_before
                     pipeline = pipeline.to(accelerator.device)
                     pipeline.set_progress_bar_config(disable=True)
-
-                    # quantitative evaluation
-                    score = preference_score(args.preference_classifier, args.evaluation_prompts, pipeline, 0, bs=args.train_batch_size, negative_prompt=args.negative_prefix)
-                    accelerator.log({"preference score": score}, step=global_step)
-                    
                     
                     # log example images for visualization
                     for pt_id, validation_prompt in enumerate(validation_prompts):
@@ -922,39 +806,6 @@ def main():
     # skip final inference
     accelerator.end_training()
     return 
-
-    # Final inference
-    # Load previous pipeline
-    pipeline = DiffusionPipeline.from_pretrained(
-        args.pretrained_model_name_or_path, revision=args.revision, torch_dtype=weight_dtype
-    )
-    pipeline = pipeline.to(accelerator.device)
-
-    # load attention processors
-    pipeline.unet.load_attn_procs(args.output_dir)
-
-    # run inference
-    generator = torch.Generator(device=accelerator.device).manual_seed(args.seed)
-    images = []
-    for _ in range(args.num_validation_images):
-        images.append(pipeline(args.validation_prompt, num_inference_steps=30, generator=generator).images[0])
-
-    if accelerator.is_main_process:
-        for tracker in accelerator.trackers:
-            if tracker.name == "tensorboard":
-                np_images = np.stack([np.asarray(img) for img in images])
-                tracker.writer.add_images("test", np_images, epoch, dataformats="NHWC")
-            if tracker.name == "wandb":
-                tracker.log(
-                    {
-                        "test": [
-                            wandb.Image(image, caption=f"{i}: {args.validation_prompt}")
-                            for i, image in enumerate(images)
-                        ]
-                    }
-                )
-
-    accelerator.end_training()
 
 
 if __name__ == "__main__":

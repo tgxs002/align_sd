@@ -98,7 +98,25 @@ If you want to do inference on [AUTOMATIC1111/stable-diffusion-webui](https://gi
 - This demo is also hosted on HuggingFace [here](https://huggingface.co/spaces/xswu/align_sd).
 
 ### Training
-Please refer to the paper for the training details. The training script will be released soon.
+```shell
+# environments
+pip install -r requirements.txt
+```
+```shell
+# download the regularization images to regularization_images
+python download_regularization_images.py
+# 
+```
+This script will download all the images of LAION aesthetics 6.5+. In our experiments, ~200K regularization data is enough.
+```shell
+# Annotating HPS for images from DiffusionDB
+python proocess_diffusiondb.py --clip_checkpoint /path/to/downloaded/checkpoint.pth --meta_file diffusiondb_hps.jsonl
+# Select images for training
+python select_training_images.py --positive_folder positive --negative_folder negative --meta_file diffusiondb_hps.jsonl --output_meta annotation.jsonl 
+# Train LoRA weights for Stable Diffusion!
+bash scripts/train_lora.sh
+```
+
 
 
 ## Visualizations

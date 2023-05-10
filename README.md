@@ -8,6 +8,7 @@ This is the official repository for the paper: Better Aligning Text-to-Image Mod
 
 ## Updates
 *  [03/29/2023] We released [a Web demo using Gradio on Hugging Face](https://huggingface.co/spaces/xswu/align_sd). Check it out!
+*  [05/10/2023] We release the full training code for adapting Stable Diffusion. Check it out! 
 
 ## Human preference dataset
 ![examples](assets/examples.png)
@@ -100,7 +101,7 @@ If you want to do inference on [AUTOMATIC1111/stable-diffusion-webui](https://gi
 ### Training
 ```shell
 # environments
-pip install -r requirements.txt
+pip install -r requirements.txt 
 ```
 ```shell
 # download the regularization images to regularization_images
@@ -110,13 +111,13 @@ python download_regularization_images.py
 This script will download all the images of LAION aesthetics 6.5+. In our experiments, ~200K regularization data is enough.
 ```shell
 # Annotating HPS for images from DiffusionDB
-python proocess_diffusiondb.py --clip_checkpoint /path/to/downloaded/checkpoint.pth --meta_file diffusiondb_hps.jsonl
+python process_diffusiondb.py --clip_checkpoint /path/to/downloaded/checkpoint.pth --meta_file diffusiondb_hps.jsonl
 # Select images for training
 python select_training_images.py --positive_folder positive --negative_folder negative --meta_file diffusiondb_hps.jsonl --output_meta annotation.jsonl 
 # Train LoRA weights for Stable Diffusion!
 bash scripts/train_lora.sh
 ```
-
+After generating the annotation, you may want to adjust the number of positive and negative samples used for SD training. In our experiments, we use 37K positive images and 21K negative images. You may need to tune the ratio to better fit your need.
 
 
 ## Visualizations

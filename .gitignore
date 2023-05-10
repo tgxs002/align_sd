@@ -1,8 +1,14 @@
 regularization_images
 regularization_images/*
+good_images
+good_images/*
 positive
 positive/*
 negative
 negative/*
 .vscode
 .vscode/*
+*.jsonl
+logs
+logs/*
+validation_prompts.txt

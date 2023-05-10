@@ -1,6 +1,7 @@
 accelerate launch train_text_to_image_lora.py \
 --pretrained_model_name_or_path CompVis/stable-diffusion-v1-4 \
 --annotation_file annotation.jsonl \
+--regularization_annotation regularization_images.jsonl \
 --resolution 512 \
 --train_batch_size 40 \
 --num_train_epochs 99 \

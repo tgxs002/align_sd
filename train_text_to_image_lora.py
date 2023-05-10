@@ -99,10 +99,11 @@ def parse_args():
         help="Path to annotation file.",
     )
     parser.add_argument(
-        "--preference_classifier",
+        "--regularization_annotation",
         type=str,
+        default=None,
         required=True,
-        help="Path to pretrained CLIP model preference classification.",
+        help="Path to regularization file.",
     )
     parser.add_argument(
         "--revision",
@@ -260,14 +261,6 @@ def parse_args():
     parser.add_argument("--adam_weight_decay", type=float, default=1e-2, help="Weight decay to use.")
     parser.add_argument("--adam_epsilon", type=float, default=1e-08, help="Epsilon value for the Adam optimizer")
     parser.add_argument("--max_grad_norm", default=1.0, type=float, help="Max gradient norm.")
-    parser.add_argument("--push_to_hub", action="store_true", help="Whether or not to push the model to the Hub.")
-    parser.add_argument("--hub_token", type=str, default=None, help="The token to use to push to the Model Hub.")
-    parser.add_argument(
-        "--hub_model_id",
-        type=str,
-        default=None,
-        help="The name of the repository to keep in sync with the local `output_dir`.",
-    )
     parser.add_argument(
         "--logging_dir",
         type=str,
@@ -325,10 +318,6 @@ def parse_args():
     if env_local_rank != -1 and env_local_rank != args.local_rank:
         args.local_rank = env_local_rank
 
-    # Sanity checks
-    if args.dataset_name is None and args.train_data_dir is None:
-        raise ValueError("Need either a dataset name or a training folder.")
-
     return args
 
 
@@ -379,20 +368,7 @@ def main():
 
     # Handle the repository creation
     if accelerator.is_main_process:
-        if args.push_to_hub:
-            if args.hub_model_id is None:
-                repo_name = get_full_repo_name(Path(args.output_dir).name, token=args.hub_token)
-            else:
-                repo_name = args.hub_model_id
-            repo_name = create_repo(repo_name, exist_ok=True)
-            repo = Repository(args.output_dir, clone_from=repo_name)
-
-            with open(os.path.join(args.output_dir, ".gitignore"), "w+") as gitignore:
-                if "step_*" not in gitignore:
-                    gitignore.write("step_*\n")
-                if "epoch_*" not in gitignore:
-                    gitignore.write("epoch_*\n")
-        elif args.output_dir is not None:
+        if args.output_dir is not None:
             os.makedirs(args.output_dir, exist_ok=True)
 
     # Load scheduler, tokenizer and models.
@@ -502,10 +478,11 @@ def main():
 
     class ImageTextDataset(torch.utils.data.Dataset):
             
-        def __init__(self, annotation_file, tokenizer, transforms, args):
+        def __init__(self, annotation_file, regularization_file, tokenizer, transforms, args):
 
             self.tokenizer = tokenizer
             self.transforms = transforms
+            self.args = args
 
             self.images = []
             self.captions = []
@@ -516,8 +493,12 @@ def main():
                     prompt = data['prompt']
                     if data['type'] == "negative":
                         prompt = args.negative_prefix + prompt
-                    if random.random() < args.prompt_dropout:
-                        prompt = ""
+                    self.captions.append(prompt)
+            with open(regularization_file, 'r') as f:
+                for key, row in enumerate(f):
+                    data = json.loads(row)
+                    self.images.append(data['file_name'])
+                    prompt = data['caption']
                     self.captions.append(prompt)
         
         def __len__(self):
@@ -527,7 +508,11 @@ def main():
             image = Image.open(self.images[idx]).convert('RGB')
             if self.transforms is not None:
                 image = self.transforms(image)
-            inputs = self.tokenizer(self.captions[idx], padding="max_length", truncation=True, max_length=self.tokenizer.model_max_length, return_tensors="pt")
+            if random.random() < self.args.prompt_dropout:
+                prompt = ""
+            else:
+                prompt = self.captions[idx]
+            inputs = self.tokenizer(prompt, padding="max_length", truncation=True, max_length=self.tokenizer.model_max_length, return_tensors="pt")
             return dict(
                 pixel_values=image,
                 input_ids=inputs.input_ids,
@@ -545,14 +530,12 @@ def main():
     )
 
     with accelerator.main_process_first():
-        if args.max_train_samples is not None:
-            dataset = dataset.shuffle(seed=args.seed).select(range(args.max_train_samples))
-        train_dataset = ImageTextDataset(args.annotation_file, tokenizer, train_transforms, args)
+        train_dataset = ImageTextDataset(args.annotation_file, args.regularization_annotation, tokenizer, train_transforms, args)
 
     def collate_fn(examples):
         pixel_values = torch.stack([example["pixel_values"] for example in examples])
         pixel_values = pixel_values.to(memory_format=torch.contiguous_format).float()
-        input_ids = torch.stack([example["input_ids"] for example in examples])
+        input_ids = torch.cat([example["input_ids"] for example in examples])
         return {"pixel_values": pixel_values, "input_ids": input_ids}
 
     # DataLoaders creation:
@@ -792,16 +775,6 @@ def main():
     if accelerator.is_main_process:
         unet = unet.to(torch.float32)
         unet.save_attn_procs(args.output_dir)
-
-        if args.push_to_hub:
-            save_model_card(
-                repo_name,
-                images=images,
-                base_model=args.pretrained_model_name_or_path,
-                dataset_name=args.dataset_name,
-                repo_folder=args.output_dir,
-            )
-            repo.push_to_hub(commit_message="End of training", blocking=False, auto_lfs_prune=True)
 
     # skip final inference
     accelerator.end_training()

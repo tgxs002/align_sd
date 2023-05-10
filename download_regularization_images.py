@@ -5,7 +5,9 @@ from datasets import load_dataset
 import json
 from PIL import Image
 from tqdm import tqdm
+import os
 
+print("Loading LAION aesthetics 6.5+...")
 dataset = load_dataset(
     'ChristophSchuhmann/improved_aesthetics_6.5plus',
     streaming=True,

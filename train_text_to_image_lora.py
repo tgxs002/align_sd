@@ -92,6 +92,12 @@ def parse_args():
         help="Path to pretrained model or model identifier from huggingface.co/models.",
     )
     parser.add_argument(
+        "--dataset_folder",
+        type=str,
+        default="./",
+        help="Path to dataset folder.",
+    )
+    parser.add_argument(
         "--annotation_file",
         type=str,
         default=None,
@@ -102,7 +108,6 @@ def parse_args():
         "--regularization_annotation",
         type=str,
         default=None,
-        required=True,
         help="Path to regularization file.",
     )
     parser.add_argument(
@@ -478,7 +483,7 @@ def main():
 
     class ImageTextDataset(torch.utils.data.Dataset):
             
-        def __init__(self, annotation_file, regularization_file, tokenizer, transforms, args):
+        def __init__(self, dataset_folder, annotation_file, regularization_file, tokenizer, transforms, args):
 
             self.tokenizer = tokenizer
             self.transforms = transforms
@@ -531,7 +536,7 @@ def main():
     )
 
     with accelerator.main_process_first():
-        train_dataset = ImageTextDataset(args.annotation_file, args.regularization_annotation, tokenizer, train_transforms, args)
+        train_dataset = ImageTextDataset(args.dataset_folder, args.annotation_file, args.regularization_annotation, tokenizer, train_transforms, args)
 
     def collate_fn(examples):
         pixel_values = torch.stack([example["pixel_values"] for example in examples])

@@ -494,12 +494,13 @@ def main():
                     if data['type'] == "negative":
                         prompt = args.negative_prefix + prompt
                     self.captions.append(prompt)
-            with open(regularization_file, 'r') as f:
-                for key, row in enumerate(f):
-                    data = json.loads(row)
-                    self.images.append(data['file_name'])
-                    prompt = data['caption']
-                    self.captions.append(prompt)
+            if regularization_file is not None:
+                with open(regularization_file, 'r') as f:
+                    for key, row in enumerate(f):
+                        data = json.loads(row)
+                        self.images.append(data['file_name'])
+                        prompt = data['caption']
+                        self.captions.append(prompt)
         
         def __len__(self):
             return len(self.images)

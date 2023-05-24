@@ -503,7 +503,7 @@ def main():
                 with open(regularization_file, 'r') as f:
                     for key, row in enumerate(f):
                         data = json.loads(row)
-                        self.images.append(os.path.join(dataset_folder, data['file_name'])))
+                        self.images.append(os.path.join(dataset_folder, data['file_name']))
                         prompt = data['caption']
                         self.captions.append(prompt)
         

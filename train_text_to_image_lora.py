@@ -494,7 +494,7 @@ def main():
             with open(annotation_file, encoding="utf-8") as f:
                 for key, row in enumerate(f):
                     data = json.loads(row)
-                    self.images.append(data['file_name'])
+                    self.images.append(os.path.join(dataset_folder, data['file_name']))
                     prompt = data['prompt']
                     if data['type'] == "negative":
                         prompt = args.negative_prefix + prompt
@@ -503,7 +503,7 @@ def main():
                 with open(regularization_file, 'r') as f:
                     for key, row in enumerate(f):
                         data = json.loads(row)
-                        self.images.append(data['file_name'])
+                        self.images.append(os.path.join(dataset_folder, data['file_name'])))
                         prompt = data['caption']
                         self.captions.append(prompt)
         

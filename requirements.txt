@@ -4,3 +4,4 @@ datasets
 accelerate
 huggingface_hub
 transformers
+diffusers

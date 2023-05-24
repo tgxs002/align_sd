@@ -114,6 +114,11 @@ This script will download all the images of LAION aesthetics 6.5+. In our experi
 python process_diffusiondb.py --clip_checkpoint /path/to/downloaded/checkpoint.pth --meta_file diffusiondb_hps.jsonl
 # Select images for training
 python select_training_images.py --positive_folder positive --negative_folder negative --meta_file diffusiondb_hps.jsonl --output_meta annotation.jsonl 
+```
+Before training, you also need to specify $work_dir in your environment, or specify it in the script. You will also need to create a file named validation_prompts.txt containing a list of validation prompts.
+```
+export work_dir=logs
+echo "your prompt here" >> validation_prompts.txt
 # Train LoRA weights for Stable Diffusion!
 bash scripts/train_lora.sh
 ```

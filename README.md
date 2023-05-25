@@ -70,7 +70,7 @@ with torch.no_grad():
     hps = image_features @ text_features.T
 ```
 Remember to replace `path/to/hpc.pth` with the path of the downloaded checkpoint.
-``evaluate_hps.py'' is a batched version of this script, and you can use it to evaluate a large number of image-text pairs.
+``evaluate_hps.py`` is a batched version of this script, and you can use it to evaluate a large number of image-text pairs.
 
 The training script of HPC is based on [OpenCLIP](https://github.com/mlfoundations/open_clip). We thank the community for their valuable work.
 The script will be released soon.

@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 import json
 import os
 import argparse
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser("Evaluate HPS")
 parser.add_argument("--hpc", required=True, type=str, help="path to hpc checkpoint")
@@ -33,7 +34,7 @@ class ImageTextDataset(Dataset):
 
     def __getitem__(self, idx):
         images = self.transforms(Image.open(os.path.join(self.folder, self.datalist[idx]['file_name'])))
-        input_ids = self.tokenizer(self.datalist[idx]['caption'])[0]
+        input_ids = self.tokenizer(self.datalist[idx]['caption'], context_length=77, truncate=True)[0]
         return images, input_ids
 
 dataset = ImageTextDataset(args.meta_file, args.image_folder, preprocess, clip.tokenize)
@@ -42,7 +43,7 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, sh
 
 scores = []
 with torch.no_grad():
-    for i, (images, text) in enumerate(dataloader):
+    for i, (images, text) in tqdm(enumerate(dataloader)):
         images = images.to(device)
         text = text.to(device)
 
@@ -54,7 +55,7 @@ with torch.no_grad():
 
         hps = image_features @ text_features.T
         hps = hps.diagonal()
-        scores.append(hps.squeeze().tolist())
+        scores.extend(hps.squeeze().tolist())
 
 print(f"HPS: {sum(scores) / len(scores)}")
         

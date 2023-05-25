@@ -30,7 +30,7 @@ class ImageTextDataset(Dataset):
         self.tokenizer = tokenizer
         
     def __len__(self):
-        return len(self.folder)
+        return len(self.datalist)
 
     def __getitem__(self, idx):
         images = self.transforms(Image.open(os.path.join(self.folder, self.datalist[idx]['file_name'])))

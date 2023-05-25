@@ -70,7 +70,9 @@ with torch.no_grad():
     hps = image_features @ text_features.T
 ```
 Remember to replace `path/to/hpc.pth` with the path of the downloaded checkpoint.
-The training script is based on [OpenCLIP](https://github.com/mlfoundations/open_clip). We thank the community for their valuable work.
+``evaluate_hps.py'' is a batched version of this script, and you can use it to evaluate a large number of image-text pairs.
+
+The training script of HPC is based on [OpenCLIP](https://github.com/mlfoundations/open_clip). We thank the community for their valuable work.
 The script will be released soon.
 
 ## Adapted model
@@ -115,14 +117,17 @@ python process_diffusiondb.py --clip_checkpoint /path/to/downloaded/checkpoint.p
 # Select images for training
 python select_training_images.py --positive_folder positive --negative_folder negative --meta_file diffusiondb_hps.jsonl --output_meta annotation.jsonl 
 ```
-Before training, you also need to specify $work_dir in your environment, or specify it in the script. You will also need to create a file named validation_prompts.txt containing a list of validation prompts.
+After generating the annotation, you may want to adjust the number of positive and negative samples used for SD training. In our experiments, we use 37K positive images and 21K negative images. You may need to tune the ratio to better fit your need.
+Before training, you also need to specify $work_dir in your environment, or specify it directly in the script. Don't forget to create a file named validation_prompts.txt, with each line as a prompt, so the training can be tracked.
 ```
 export work_dir=logs
 echo "your prompt here" >> validation_prompts.txt
+```
+The training script is launched via accelerator, so you need to create a configuration file in advance by running ``accelerate config``. This allows you to train on multiple machines / GPUs. You will need to change the batch size in the script if you are using more than one GPU. For example, if you have machine with 8 GPUs, you should change the batch size to 5 rather than 40. 
+```
 # Train LoRA weights for Stable Diffusion!
 bash scripts/train_lora.sh
 ```
-After generating the annotation, you may want to adjust the number of positive and negative samples used for SD training. In our experiments, we use 37K positive images and 21K negative images. You may need to tune the ratio to better fit your need.
 
 
 ## Visualizations

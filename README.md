@@ -4,9 +4,10 @@
 
 ### [Project page](https://tgxs002.github.io/align_sd_web/) | [Arxiv](https://arxiv.org/abs/2303.14420) | [Space demo](https://huggingface.co/spaces/xswu/align_sd)
 
-This is the official repository for the paper: Better Aligning Text-to-Image Models with Human Preference. The paper demonstrates that Stable Diffusion can be improved via learning from human preferences. By learning from human preferences, the model is better aligned with user intentions, and also produce images with less artifacts, such as weird limbs and faces.
+This is the official repository for the paper: Better Aligning Text-to-Image Models with Human Preference. The paper demonstrates that Stable Diffusion can be improved via learning from human preferences. By learning from human preferences, the model is better aligned with user intentions and also produces images with fewer artifacts, such as weird limbs and faces.
 
 ## Updates
+*  [07/14/2023] The paper is accepted by ICCV 2023!
 *  [06/16/2023] We released [HPS v2](https://github.com/tgxs002/HPSv2), a stronger preference prediction model trained with a much larger dataset!
 *  [05/10/2023] We release the full training code for adapting Stable Diffusion. Check it out! 
 *  [03/29/2023] We released [a Web demo using Gradio on Hugging Face](https://huggingface.co/spaces/xswu/align_sd). Check it out!
